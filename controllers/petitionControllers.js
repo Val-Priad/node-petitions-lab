@@ -39,3 +39,66 @@ exports.getPetitions = async (req, res) => {
     res.status(500).send("Помилка сервера");
   }
 };
+
+exports.getPetitionCreationPage = (req, res) => {
+  res.render('create-petition');
+};
+
+
+exports.petitionCreation = async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Авторизуйтеся для створення петиції"
+    });
+  }
+
+  const { title, text } = req.body;
+  if (!title || !text) {
+    return res.status(400).json({
+      message: "Необхідно заповнити всі поля"
+    });
+  }
+
+  const author_id = req.session.user.id;
+  const creation_date = new Date();
+  const expiry_date = new Date();
+  expiry_date.setMonth(creation_date.getMonth() + 1);
+
+  const t = await sequelize.transaction();
+
+  try {
+    const newPetition = await Petition.create({
+      author_id,
+      title,
+      text,
+      creation_date,
+      expiry_date,
+      status: "In_Progress",
+      petition_current: 0
+    }, { transaction: t });
+
+    await t.commit();
+    
+    res.status(201).json({
+      status: 'success',
+      data: {
+        petition: {
+          id: newPetition.id,
+          title: newPetition.title,
+          text: newPetition.text,
+          petition_current: newPetition.petition_current,
+          creation_date: formatDate(newPetition.creation_date),
+          expiry_date: formatDate(newPetition.expiry_date),
+          status: newPetition.status
+        }
+      }
+    });
+  } catch (err) {
+    await t.rollback();
+    console.error(err);
+    res.status(500).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
