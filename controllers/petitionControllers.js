@@ -1,6 +1,7 @@
 const { Petition, Author, Signature, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
+
 exports.getPetitions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Текущая страница, по умолчанию 1
@@ -44,6 +45,79 @@ exports.getPetitionCreationPage = (req, res) => {
   res.render('create-petition');
 };
 
+exports.getPetitionOverview = async (req, res) => {
+  const petitionId = req.params.id;
+  
+  try {
+    const petition = await Petition.findOne({
+      where: { id: petitionId },
+      include: [{
+        model: Author,
+        attributes: ['username'],
+        as: 'Author'
+      }]
+    });
+    
+    if (!petition) {
+      return res.status(404).send("Петиція не знайдена");
+    }
+
+    res.render('view-petition', {
+      id: petition.id,
+      title: petition.title,
+      text: petition.text,
+      author_username: petition.Author.username,
+      petition_current: petition.petition_current,
+      expiry_date: formatDate(petition.expiry_date)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Помилка сервера");
+  }
+};
+
+exports.petitionVoting = async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Необхідно авторизуватися" });
+  }
+  
+  const userId = req.session.user.id;
+  const petitionId = req.params.id;
+
+  const t = await sequelize.transaction();
+
+  try {
+    const [signature, created] = await Signature.findOrCreate({
+      where: { author_id: userId, petition_id: petitionId },
+      defaults: { author_id: userId, petition_id: petitionId },
+      transaction: t
+    });
+
+    if (!created) {
+      await t.rollback();
+      return res.status(400).json({ message: "Ви вже голосували за цю петицію" });
+    }
+
+    await Petition.increment('petition_current', {
+      by: 1,
+      where: { id: petitionId },
+      transaction: t
+    });
+
+    const updatedPetition = await Petition.findByPk(petitionId, { transaction: t });
+
+    await t.commit();
+
+    return res.status(200).json({
+      message: "Голос зараховано",
+      petition_current: updatedPetition.petition_current
+    });
+  } catch (err) {
+    await t.rollback();
+    console.error(err);
+    return res.status(500).json({ message: "Помилка сервера" });
+  }
+};
 
 exports.petitionCreation = async (req, res) => {
   if (!req.session.user) {
