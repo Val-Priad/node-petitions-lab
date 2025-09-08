@@ -119,6 +119,58 @@ exports.petitionVoting = async (req, res) => {
   }
 };
 
+exports.getCompletedPetitions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 3;
+    const offset = (page - 1) * limit;
+
+    const selectedStatus = req.query.status; 
+
+    const whereClause = {
+      status: { [Op.ne]: 'In_Progress' }
+    };
+
+    if (selectedStatus) {
+      whereClause.status = selectedStatus;
+    }
+
+    const { count, rows: completedPetitions } = await Petition.findAndCountAll({
+      where: whereClause,
+      include: [{
+        model: Author,
+        attributes: ['username'],
+        as: 'Author'
+      }],
+      order: [['creation_date', 'DESC']],
+      limit,
+      offset
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    const formattedPetitions = completedPetitions.map(petition => ({
+      ...petition.get({ plain: true }),
+      creation_date: formatDate(petition.creation_date),
+      expiry_date: formatDate(petition.expiry_date),
+      author_username: petition.Author.username
+    }));
+
+    res.render("completed-petitions", {
+      petitions: formattedPetitions,
+      currentPage: page,
+      totalPages,
+      statusMap,
+      selectedStatus
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Помилка сервера");
+  }
+};
+
+
 exports.petitionCreation = async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({

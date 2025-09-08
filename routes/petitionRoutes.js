@@ -15,4 +15,7 @@ router.route("/api/petition-overview/:id")
     .get(petitionControllers.getPetitionOverview)
     .patch(petitionControllers.petitionVoting)
 
+router.route("/api/completed-petitions")
+    .get(petitionControllers.getCompletedPetitions)
+
 module.exports = router
