@@ -1,7 +1,6 @@
 const { Petition, Author, Signature, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
-
 exports.getPetitions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Текущая страница, по умолчанию 1
@@ -170,6 +169,51 @@ exports.getCompletedPetitions = async (req, res) => {
   }
 };
 
+
+exports.getMyPetitions = async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  const sessionId = req.session.user.id;
+
+  const page = parseInt(req.query.page) || 1;
+  const limit = 5;
+  const offset = (page - 1) * limit;
+
+  try {
+    const { count, rows: usersPetitions } = await Petition.findAndCountAll({
+      where: { author_id: sessionId },
+      include: [{
+        model: Author,
+        attributes: ['username'],
+        as: 'Author'
+      }],
+      order: [['creation_date', 'DESC']],
+      limit,
+      offset
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    const formattedPetitions = usersPetitions.map(petition => ({
+      ...petition.get({ plain: true }),
+      creation_date: formatDate(petition.creation_date),
+      expiry_date: formatDate(petition.expiry_date),
+      author_username: petition.Author.username
+    }));
+
+    res.render("my-petitions", {
+      usersPetitions: formattedPetitions,
+      currentPage: page,
+      totalPages
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Помилка сервера");
+  }
+};
 
 exports.petitionCreation = async (req, res) => {
   if (!req.session.user) {

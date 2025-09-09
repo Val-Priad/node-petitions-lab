@@ -18,4 +18,7 @@ router.route("/api/petition-overview/:id")
 router.route("/api/completed-petitions")
     .get(petitionControllers.getCompletedPetitions)
 
+router.route("/api/my-petitions")
+    .get(petitionControllers.getMyPetitions)
+
 module.exports = router
