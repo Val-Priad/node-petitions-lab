@@ -1,6 +1,53 @@
 const { Petition, Author, Signature, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
+const statusMap = {
+  "rejected": "Відхилено",
+  "accepted": "Прийнято",
+  "on-review": "На розгляді",
+  "expired": "Термін вийшов"
+};
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+exports.changePetStatus = async function() {
+  const now = new Date();
+  const random = Math.floor(Math.random() * 3);
+  const statuses = ['rejected', 'accepted', 'on-review', 'expired'];
+
+  try {
+    const petitions = await Petition.findAll({
+      where: { 
+        status: 'In_Progress',
+        [Op.or]: [
+          { petition_current: { [Op.gte]: 25000 } },
+          { expiry_date: { [Op.lt]: now } }
+        ]
+      }
+    });
+
+    for (const petition of petitions) {
+      let newStatus = "In_Progress";
+      
+      if (petition.petition_current >= 25000) {
+        newStatus = statuses[random];
+      } else if (new Date(petition.expiry_date) < now) {
+        newStatus = "expired";
+      }
+
+      await petition.update({ status: newStatus });
+    }
+  } catch (err) {
+    console.error("Error updating petition statuses:", err);
+  }
+};
+
 exports.getPetitions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Текущая страница, по умолчанию 1
@@ -270,5 +317,61 @@ exports.petitionCreation = async (req, res) => {
       status: 'fail',
       message: err.message
     });
+  }
+};
+
+exports.GetPetitionDeletionPage = (req, res) => {
+  const petitionID = req.query.id;
+  res.render("delete-form", { petitionID });
+};
+
+exports.deletePetition = async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Авторизуйтеся для видалення петиції"
+    });
+  }
+  
+  const { password, petitionID } = req.body;
+  const user = req.session.user;
+
+  if (user.password !== password) {
+    return res.status(403).json({
+      status: 'fail',
+      message: "Невірний пароль"
+    });
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    const petition = await Petition.findOne({
+      where: { id: petitionID, author_id: user.id },
+      transaction: t
+    });
+    
+    if (!petition) {
+      await t.rollback();
+      return res.status(404).json({ 
+        message: "Петиція не знайдена або не належить вам" 
+      });
+    }
+
+    await Signature.destroy({
+      where: { petition_id: petitionID },
+      transaction: t
+    });
+
+    await Petition.destroy({
+      where: { id: petitionID },
+      transaction: t
+    });
+    
+    await t.commit();
+    return res.status(200).json({ message: "Петиція видалена" });
+  } catch (err) {
+    await t.rollback();
+    console.error(err);
+    return res.status(500).json({ message: "Помилка сервера" });
   }
 };

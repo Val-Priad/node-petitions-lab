@@ -21,4 +21,10 @@ router.route("/api/completed-petitions")
 router.route("/api/my-petitions")
     .get(petitionControllers.getMyPetitions)
 
+router.route("/api/petition-deletion")
+    .get(petitionControllers.GetPetitionDeletionPage)
+
+router.route("/api/delete")
+    .delete(petitionControllers.deletePetition)
+
 module.exports = router
