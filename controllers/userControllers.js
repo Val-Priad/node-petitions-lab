@@ -119,3 +119,48 @@ exports.userLogin = async (req, res) => {
   }
 };
 
+exports.checkAuth = async (req, res) => {
+  try {
+    if (req.session.user) {
+      const user = await Author.findByPk(req.session.user.id);
+      
+      if (user) {
+        return res.json({ 
+          isAuthenticated: true, 
+          username: user.username 
+        });
+      }
+    }
+    
+    res.json({ isAuthenticated: false });
+  } catch (err) {
+    console.error("Помилка при перевірці авторизації:", err);
+    res.status(500).json({ isAuthenticated: false });
+  }
+};
+
+exports.getLogOut = (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Помилка при виході:", err);
+      
+      if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Помилка при виході" 
+        });
+      }
+      
+      return res.status(500).send("Помилка при виході");
+    }
+    
+    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+      return res.json({ 
+        success: true, 
+        redirectUrl: "/login" 
+      });
+    }
+    
+    res.redirect("/login");
+  });
+};
