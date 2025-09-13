@@ -24,7 +24,7 @@ exports.changePetStatus = async function() {
   try {
     const petitions = await Petition.findAll({
       where: { 
-        status: 'In_Progress',
+        status: 'in-progress',
         [Op.or]: [
           { petition_current: { [Op.gte]: 25000 } },
           { expiry_date: { [Op.lt]: now } }
@@ -33,7 +33,7 @@ exports.changePetStatus = async function() {
     });
 
     for (const petition of petitions) {
-      let newStatus = "In_Progress";
+      let newStatus = "in-progress";
       
       if (petition.petition_current >= 25000) {
         newStatus = statuses[random];
@@ -55,7 +55,7 @@ exports.getPetitions = async (req, res) => {
     const skippedValue = (page - 1) * limit;
 
     const { count, rows: petitions } = await Petition.findAndCountAll({
-      where: { status: "In_Progress" },
+      where: { status: "in-progress" },
       include: [{
         model: Author,
         attributes: ['username'],
@@ -174,7 +174,7 @@ exports.getCompletedPetitions = async (req, res) => {
     const selectedStatus = req.query.status; 
 
     const whereClause = {
-      status: { [Op.ne]: 'In_Progress' }
+      status: { [Op.ne]: 'in-progress' }
     };
 
     if (selectedStatus) {
@@ -290,7 +290,7 @@ exports.petitionCreation = async (req, res) => {
       text,
       creation_date,
       expiry_date,
-      status: "In_Progress",
+      status: "in-progress",
       petition_current: 0
     }, { transaction: t });
 

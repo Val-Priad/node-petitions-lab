@@ -38,8 +38,8 @@ const Petition = db.define('Petition', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('In_Progress', 'rejected', 'accepted', 'on-review', 'expired'),
-    defaultValue: 'In_Progress'
+    type: DataTypes.ENUM('in-progress', 'rejected', 'accepted', 'on-review', 'expired'),
+    defaultValue: 'in-progress'
   }
 }, {
   tableName: 'petitions',
