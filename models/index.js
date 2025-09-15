@@ -10,6 +10,11 @@ const Author = db.define('Author', {
   password: {
     type: DataTypes.STRING(100),
     allowNull: false
+  },
+  is_admin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   tableName: 'authors',
