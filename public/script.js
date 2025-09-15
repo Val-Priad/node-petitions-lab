@@ -161,6 +161,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function checkIsAdmin() {
+        try {
+            const response = await fetch("/check-auth", {
+                method: "GET",
+                credentials: "include"
+            });
+
+            const data = await response.json();
+
+            if (data.isAdmin !== true) {
+                document.querySelectorAll(".delete-btn").forEach(btn => {
+                    btn.style.display = "none";
+                });
+            }
+
+        } catch (error) {
+            console.error("Помилка при перевірці авторизації:", error);
+        }
+    }
+    checkIsAdmin();
+
     function loginHandler() {
         window.location.href = "/login"; // Перехід на сторінку логіну
     }
