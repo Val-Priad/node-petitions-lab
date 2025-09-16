@@ -7,15 +7,15 @@ exports.getRegister = (req, res) => {
 
 exports.userRegistration = async (req, res) => {
   const { username, password, confirmPassword } = req.body;
-  
+
   // Додатковий вивід для дебагінгу
   console.log('Received data:', { username, password, confirmPassword });
 
   if (password !== confirmPassword) {
     console.log('Password mismatch:', password, '!=', confirmPassword);
-    return res.status(400).json({ 
-      success: false, 
-      message: "Паролі не співпадають!" 
+    return res.status(400).json({
+      success: false,
+      message: "Паролі не співпадають!"
     });
   }
 
@@ -26,12 +26,12 @@ exports.userRegistration = async (req, res) => {
       where: { username },
       transaction: t
     });
-    
+
     if (existingUser) {
       await t.rollback();
-      return res.status(400).json({ 
-        success: false, 
-        message: "Користувач вже існує!" 
+      return res.status(400).json({
+        success: false,
+        message: "Користувач вже існує!"
       });
     }
 
@@ -41,9 +41,9 @@ exports.userRegistration = async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
-    
-    return res.status(201).json({ 
-      success: true, 
+
+    return res.status(201).json({
+      success: true,
       message: "Реєстрація успішна!",
       user: {
         id: newUser.id,
@@ -53,9 +53,9 @@ exports.userRegistration = async (req, res) => {
   } catch (err) {
     await t.rollback();
     console.error('Registration error:', err);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Помилка сервера: " + err.message 
+    return res.status(500).json({
+      success: false,
+      message: "Помилка сервера: " + err.message
     });
   }
 };
@@ -66,55 +66,55 @@ exports.getloginPage = (req, res) => {
 
 exports.userLogin = async (req, res) => {
   const { username, password } = req.body;
-  
+
   try {
     const user = await Author.findOne({
-      where: { 
+      where: {
         [Op.and]: [
           { username },
           { password }
         ]
       }
     });
-    
+
     if (user) {
-      req.session.user = { 
-        id: user.id, 
-        username: user.username, 
-        password: user.password 
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        password: user.password
       };
-      
+
       // Перевіряємо, чи це AJAX-запит
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.json({ 
-          success: true, 
-          redirectUrl: "/api/my-petitions" 
+        return res.json({
+          success: true,
+          redirectUrl: "/api/my-petitions"
         });
       }
-      
+
       return res.redirect("/api/my-petitions");
     } else {
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.status(401).json({ 
-          success: false, 
-          message: "Невірний логін або пароль" 
+        return res.status(401).json({
+          success: false,
+          message: "Невірний логін або пароль"
         });
       }
-      
+
       return res.send(
-        "❌ Невірний логін або пароль. <a href='/login'>Спробувати ще раз</a>"
+          "❌ Невірний логін або пароль. <a href='/login'>Спробувати ще раз</a>"
       );
     }
   } catch (err) {
     console.error(err);
-    
+
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-      return res.status(500).json({ 
-        success: false, 
-        message: "Помилка сервера" 
+      return res.status(500).json({
+        success: false,
+        message: "Помилка сервера"
       });
     }
-    
+
     res.status(500).send("Помилка сервера");
   }
 };
@@ -123,15 +123,16 @@ exports.checkAuth = async (req, res) => {
   try {
     if (req.session.user) {
       const user = await Author.findByPk(req.session.user.id);
-      
+
       if (user) {
-        return res.json({ 
-          isAuthenticated: true, 
-          username: user.username 
+        return res.json({
+          isAuthenticated: true,
+          username: user.username,
+          isAdmin:user.is_admin
         });
       }
     }
-    
+
     res.json({ isAuthenticated: false });
   } catch (err) {
     console.error("Помилка при перевірці авторизації:", err);
@@ -143,24 +144,24 @@ exports.getLogOut = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error("Помилка при виході:", err);
-      
+
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.status(500).json({ 
-          success: false, 
-          message: "Помилка при виході" 
+        return res.status(500).json({
+          success: false,
+          message: "Помилка при виході"
         });
       }
-      
+
       return res.status(500).send("Помилка при виході");
     }
-    
+
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-      return res.json({ 
-        success: true, 
-        redirectUrl: "/login" 
+      return res.json({
+        success: true,
+        redirectUrl: "/login"
       });
     }
-    
+
     res.redirect("/login");
   });
 };

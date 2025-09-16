@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:petitions": "jest test/unit/petitionControllers.test.js",
+    "test:users": "jest test/unit/userControllers.test.js"
   },
   "private": true,
   "dependencies": {
@@ -18,5 +20,8 @@
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "jest": "^30.1.3"
   }
 }
