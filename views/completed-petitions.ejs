@@ -40,7 +40,9 @@
                         <h3><%= petition.title %></h3>
                         <p><%= petition.text %></p>
                         <div class="petition-info">
-                            <button class="delete-btn" data-id="<%= petition.id %>">Видалити петицію</button>
+                            <% if (user && user.is_admin) { %>
+                                <button class="delete-btn" data-id="<%= petition.id %>">Видалити петицію</button>
+                            <% } %>
                             <button class="details-btn" data-id="<%=petition.id %>">Деталі</button>
                         </div>
                     </div>

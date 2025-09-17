@@ -81,7 +81,8 @@ exports.userLogin = async (req, res) => {
       req.session.user = {
         id: user.id,
         username: user.username,
-        password: user.password
+        password: user.password,
+        is_admin:user.is_admin
       };
 
       // Перевіряємо, чи це AJAX-запит

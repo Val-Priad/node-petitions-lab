@@ -78,7 +78,8 @@ exports.getPetitions = async (req, res) => {
     res.render('index', {
       petitions: formattedPetitions,
       currentPage: page,
-      totalPages
+      totalPages,
+      user:req.session.user||null
     });
 
   } catch (err) {
@@ -207,7 +208,8 @@ exports.getCompletedPetitions = async (req, res) => {
       currentPage: page,
       totalPages,
       statusMap,
-      selectedStatus
+      selectedStatus,
+      user:req.session.user||null
     });
 
   } catch (err) {
