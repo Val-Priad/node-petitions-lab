@@ -23,8 +23,8 @@ exports.changePetStatus = async function() {
 
   try {
     const petitions = await Petition.findAll({
-      where: { 
-        status: 'in-progress',
+      where: {
+        status: 'In_Progress',
         [Op.or]: [
           { petition_current: { [Op.gte]: 25000 } },
           { expiry_date: { [Op.lt]: now } }
@@ -33,8 +33,8 @@ exports.changePetStatus = async function() {
     });
 
     for (const petition of petitions) {
-      let newStatus = "in-progress";
-      
+      let newStatus = "In_Progress";
+
       if (petition.petition_current >= 25000) {
         newStatus = statuses[random];
       } else if (new Date(petition.expiry_date) < now) {
@@ -55,7 +55,7 @@ exports.getPetitions = async (req, res) => {
     const skippedValue = (page - 1) * limit;
 
     const { count, rows: petitions } = await Petition.findAndCountAll({
-      where: { status: "in-progress" },
+      where: { status: "In_Progress" },
       include: [{
         model: Author,
         attributes: ['username'],
@@ -93,7 +93,7 @@ exports.getPetitionCreationPage = (req, res) => {
 
 exports.getPetitionOverview = async (req, res) => {
   const petitionId = req.params.id;
-  
+
   try {
     const petition = await Petition.findOne({
       where: { id: petitionId },
@@ -103,7 +103,7 @@ exports.getPetitionOverview = async (req, res) => {
         as: 'Author'
       }]
     });
-    
+
     if (!petition) {
       return res.status(404).send("Петиція не знайдена");
     }
@@ -126,7 +126,7 @@ exports.petitionVoting = async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Необхідно авторизуватися" });
   }
-  
+
   const userId = req.session.user.id;
   const petitionId = req.params.id;
 
@@ -171,10 +171,10 @@ exports.getCompletedPetitions = async (req, res) => {
     const limit = 3;
     const offset = (page - 1) * limit;
 
-    const selectedStatus = req.query.status; 
+    const selectedStatus = req.query.status;
 
     const whereClause = {
-      status: { [Op.ne]: 'in-progress' }
+      status: { [Op.ne]: 'In_Progress' }
     };
 
     if (selectedStatus) {
@@ -263,7 +263,7 @@ exports.getMyPetitions = async (req, res) => {
 };
 
 exports.petitionCreation = async (req, res) => {
-  if (!req.session.user) {
+  if (!req.session || !req.session.user) {
     return res.status(401).json({
       message: "Авторизуйтеся для створення петиції"
     });
@@ -290,12 +290,12 @@ exports.petitionCreation = async (req, res) => {
       text,
       creation_date,
       expiry_date,
-      status: "in-progress",
+      status: "In_Progress",
       petition_current: 0
     }, { transaction: t });
 
     await t.commit();
-    
+
     res.status(201).json({
       status: 'success',
       data: {
@@ -331,7 +331,7 @@ exports.deletePetition = async (req, res) => {
       message: "Авторизуйтеся для видалення петиції"
     });
   }
-  
+
   const { password, petitionID } = req.body;
   const user = req.session.user;
 
@@ -349,11 +349,11 @@ exports.deletePetition = async (req, res) => {
       where: { id: petitionID, author_id: user.id },
       transaction: t
     });
-    
+
     if (!petition) {
       await t.rollback();
-      return res.status(404).json({ 
-        message: "Петиція не знайдена або не належить вам" 
+      return res.status(404).json({
+        message: "Петиція не знайдена або не належить вам"
       });
     }
 
@@ -366,7 +366,7 @@ exports.deletePetition = async (req, res) => {
       where: { id: petitionID },
       transaction: t
     });
-    
+
     await t.commit();
     return res.status(200).json({ message: "Петиція видалена" });
   } catch (err) {
